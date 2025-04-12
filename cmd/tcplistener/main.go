@@ -7,6 +7,8 @@ import (
 	"net"
 	"os"
 	"strings"
+
+	"github.com/xsynch/httpfromtcp/internal/request"
 )
 
 func getLinesChannel(f io.ReadCloser) <-chan string{
@@ -70,9 +72,12 @@ func main(){
 			os.Exit(1)
 		}
 		fmt.Printf("connection started\n")
-		for data := range getLinesChannel(conn){
-			fmt.Printf("%s\n",data)
+		req, err := request.RequestFromReader(conn)
+		if err != nil {
+			fmt.Println(err)
 		}
+		fmt.Printf("Request line:\n- Method: %s\n- Target: %s\n- Version: %s\n",req.RequestLine.Method, req.RequestLine.RequestTarget,req.RequestLine.HttpVersion)
+
 		fmt.Printf("Connection closed\n")
 		
 	}
