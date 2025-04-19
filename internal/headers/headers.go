@@ -168,3 +168,13 @@ func NewHeaders() Headers {
 	return Headers{}
 }
 
+func (h Headers) Get(key string) (string,error) {
+	val,ok := h[strings.ToLower(key)]
+	if ok {
+		return val,nil
+	} else {
+		return "",fmt.Errorf("header not found: %s",val)
+	}
+	
+
+}

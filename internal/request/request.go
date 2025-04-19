@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/xsynch/httpfromtcp/internal/headers"
@@ -15,6 +16,7 @@ type State int
 const (
 	initialized State = iota
 	requestStateParsingHeaders 
+	parsingBody
 	done 
 )
 const (
@@ -26,6 +28,7 @@ type Request struct {
 	RequestLine RequestLine
 	HTTPReadStatus State 
 	Headers headers.Headers
+	Body []byte
 	
 }
 
@@ -97,11 +100,71 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 			readToindex -= bytesConsumed
 		}
 
-		if err == io.EOF || completed{
+		if  completed{
+			req.HTTPReadStatus = parsingBody
+			// break
+		}
+	 }
+	 for req.HTTPReadStatus == parsingBody {
+		totalBodyBytes := 0
+		bodyLength, err := req.Headers.Get("content-length")
+		if err != nil {
 			req.HTTPReadStatus = done
 			break
 		}
+		bodyLengthInt,err := strconv.Atoi(bodyLength)
+		if err != nil {
+			req.HTTPReadStatus = done 
+			return nil, err 
+		}
+		//readtoindex already contains the first two bytes of the body
+		totalBodyBytes = readToindex
+		req.Body = append(req.Body, buf[:readToindex]...)
+		for {
+			if readToindex == len(buf){
+				newBuf := make([]byte,len(buf) * 2)
+				_ = copy(newBuf,buf)
+				buf = newBuf
+	
+			}
+			// fmt.Printf("Read to index val: %d\n",readToindex)
+			n, err := reader.Read(buf[readToindex:])			
+			if err == io.EOF{
+				
+				if totalBodyBytes > bodyLengthInt{
+					req.HTTPReadStatus = done 
+					return nil, fmt.Errorf("body contents greater than content length provided")
+				}
+				
+				if totalBodyBytes < bodyLengthInt {
+					req.HTTPReadStatus = done 
+					return nil, fmt.Errorf("body contents less than content length provided")
+				}
+				if totalBodyBytes == bodyLengthInt {
+					req.HTTPReadStatus = done
+					fmt.Printf("consumed %d of the body data\n",totalBodyBytes)
+					break
+				}
+				
+				
+			} else if err != nil {				
+				return nil,err 
+			}
+			
+			if n > 0 {
+												
+				req.Body = append(req.Body, buf[readToindex:readToindex+n]...)
+				readToindex += n
+				totalBodyBytes += n 
+
+			} else {
+				req.HTTPReadStatus = done
+				break
+				// return nil,fmt.Errorf("error reading buffer infomration")
+			}
+		}		
 	 }
+
 	
 
 	return req,nil 
