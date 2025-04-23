@@ -5,6 +5,8 @@ import (
 	"log"
 	"net"
 	"sync/atomic"
+
+	"github.com/xsynch/httpfromtcp/internal/response"
 )
 
 type Server struct{
@@ -65,10 +67,22 @@ func (s *Server) listen(){
 
 func (s *Server) handle(conn net.Conn) {
 		defer conn.Close()
-		_,err := conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nHello World!\r\n"))
+		err := response.WriteStatusLine(conn,response.OK)
 		if err != nil {
-			log.Println("error writing data to the connection")			
+			log.Println(err)
+			return
 		}
+		h := response.GetDefaultHeaders(0)
+		err = response.WriteHeaders(conn,h)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		// _,err := conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nHello World!\r\n"))
+		// if err != nil {
+		// 	log.Println("error writing data to the connection")			
+		// }
 		
 		s.Close()
 }
