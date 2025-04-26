@@ -165,7 +165,7 @@ func isValidHeader(word string) bool {
 }
 
 func NewHeaders() Headers {
-	return Headers{}
+	return map[string]string{}
 }
 
 func (h Headers) Get(key string) (string,error) {
@@ -177,4 +177,16 @@ func (h Headers) Get(key string) (string,error) {
 	}
 	
 
+}
+
+func (h Headers) Set(key, value string) {
+	key = strings.ToLower(key)
+	v, ok := h[key]
+	if ok {
+		value = strings.Join([]string{
+			v,
+			value,
+		}, ", ")
+	}
+	h[key] = value
 }
