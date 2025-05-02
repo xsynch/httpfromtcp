@@ -100,12 +100,18 @@ func (s *Server) listen(){
 }
 
 func (s *Server) handle(conn net.Conn) {
+		// msg := fmt.Sprintf("HTTP/1.1 %d %s\r\n",200,"OK")
+		// conn.Write([]byte(msg))
+		
+
 		defer conn.Close()
+		
 		
 		buf := bytes.NewBuffer([]byte{})
 		
 		req, err := request.RequestFromReader(conn)
 		if err != nil {
+			
 			he := &HandlerError{
 				Status: 500,
 				Message: err.Error(),
@@ -114,29 +120,47 @@ func (s *Server) handle(conn net.Conn) {
 			return
 		}
 		
-		handlerError := s.handler(buf,req)
+		n,err := conn.Write([]byte("Hello\r\n"))
+		if err != nil {
+			log.Println(err)
+		}
+		log.Printf("Wrote %d bytes\n",n)
+	
+		handlerError := s.handler(conn,req)		
 		if handlerError != nil  {
+			
+			msg := fmt.Sprintf("HTTP/1.1 %d %s\r\n",200,"OK")
+			_, err = conn.Write([]byte(msg))
+			if err != nil {
+				log.Printf("Error writing to connection from handlerError: %s\n",err)
+			}
+			// log.Println("handling the error")
 			handlerError.Write(conn)
+			// log.Println("returning from handler write")
+			
+
+			// conn.Close()
 			return
 
 		} 
 		b := buf.Bytes()
-			defaultHeaders := response.GetDefaultHeaders(len(b))
-			err = response.WriteStatusLine(conn,response.OK)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-			err = response.WriteHeaders(conn,defaultHeaders)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-			_, err = conn.Write(b)
-			if err != nil {
-				log.Println(err)
-				return
-			}
+		defaultHeaders := response.GetDefaultHeaders(len(b))
+		err = response.WriteStatusLine(conn,response.OK)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+	
+		err = response.WriteHeaders(conn,defaultHeaders)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		_, err = conn.Write(b)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 			
 			
 		

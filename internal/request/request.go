@@ -45,11 +45,9 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 	req := &Request{
 		HTTPReadStatus: initialized,
 		Headers: map[string]string{},
+		Body: make([]byte, 0),
 	}
-	
-	
-	for req.HTTPReadStatus == initialized{
-		
+	for req.HTTPReadStatus != done{
 		if readToindex == len(buf){
 			newBuf := make([]byte,len(buf) * 2)
 			_ = copy(newBuf,buf)
@@ -77,93 +75,124 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 		}
 				
 	}
-	 for req.HTTPReadStatus == requestStateParsingHeaders{
-
-		if readToindex == len(buf){
-			newBuf := make([]byte,len(buf) * 2)
-			_ = copy(newBuf,buf)
-			buf = newBuf
-
-		}
-		b,err := reader.Read(buf[readToindex:])
-		if err != nil && err != io.EOF{
-			return nil, err				
-		}
-		readToindex += b
-		
-		bytesConsumed,completed,err := req.Headers.Parse(buf[:readToindex])
-		if err != nil {
-			return nil, err 
-		}
-		if bytesConsumed > 0 {
-			copy(buf,buf[bytesConsumed:readToindex])
-			readToindex -= bytesConsumed
-		}
-
-		if  completed{
-			req.HTTPReadStatus = parsingBody
-			// break
-		}
-	 }
-	 for req.HTTPReadStatus == parsingBody {
-		totalBodyBytes := 0
-		bodyLength, err := req.Headers.Get("content-length")
-		if err != nil {
-			req.HTTPReadStatus = done
-			break
-		}
-		bodyLengthInt,err := strconv.Atoi(bodyLength)
-		if err != nil {
-			req.HTTPReadStatus = done 
-			return nil, err 
-		}
-		//readtoindex already contains the first two bytes of the body
-		totalBodyBytes = readToindex
-		req.Body = append(req.Body, buf[:readToindex]...)
-		for {
-			if readToindex == len(buf){
-				newBuf := make([]byte,len(buf) * 2)
-				_ = copy(newBuf,buf)
-				buf = newBuf
 	
-			}
-			// fmt.Printf("Read to index val: %d\n",readToindex)
-			n, err := reader.Read(buf[readToindex:])			
-			if err == io.EOF{
-				
-				if totalBodyBytes > bodyLengthInt{
-					req.HTTPReadStatus = done 
-					return nil, fmt.Errorf("body contents greater than content length provided")
-				}
-				
-				if totalBodyBytes < bodyLengthInt {
-					req.HTTPReadStatus = done 
-					return nil, fmt.Errorf("body contents less than content length provided")
-				}
-				if totalBodyBytes == bodyLengthInt {
-					req.HTTPReadStatus = done
-					fmt.Printf("consumed %d of the body data\n",totalBodyBytes)
-					break
-				}
-				
-				
-			} else if err != nil {				
-				return nil,err 
-			}
-			
-			if n > 0 {
-												
-				req.Body = append(req.Body, buf[readToindex:readToindex+n]...)
-				readToindex += n
-				totalBodyBytes += n 
+	
+	// for req.HTTPReadStatus == initialized{
+		
+	// 	if readToindex == len(buf){
+	// 		newBuf := make([]byte,len(buf) * 2)
+	// 		_ = copy(newBuf,buf)
+	// 		buf = newBuf
 
-			} else {
-				req.HTTPReadStatus = done
-				break
-				// return nil,fmt.Errorf("error reading buffer infomration")
-			}
-		}		
-	 }
+	// 	}
+	// 	b,err := reader.Read(buf[readToindex:])
+	// 	if err != nil && err != io.EOF{
+	// 		return nil, err				
+	// 	}
+	// 	readToindex += b
+		
+	// 	bytesConsumed,err := req.parse(buf[:readToindex])
+	// 	if err != nil {
+	// 		return nil, err 
+	// 	}
+	// 	if bytesConsumed > 0 {
+	// 		copy(buf,buf[bytesConsumed:readToindex])
+	// 		readToindex -= bytesConsumed
+	// 	}
+
+	// 	if err == io.EOF{
+	// 		req.HTTPReadStatus = done
+	// 		break
+	// 	}
+				
+	// }
+	//  for req.HTTPReadStatus == requestStateParsingHeaders{
+
+	// 	if readToindex == len(buf){
+	// 		newBuf := make([]byte,len(buf) * 2)
+	// 		_ = copy(newBuf,buf)
+	// 		buf = newBuf
+
+	// 	}
+	// 	b,err := reader.Read(buf[readToindex:])
+	// 	if err != nil && err != io.EOF{
+	// 		return nil, err				
+	// 	}
+	// 	readToindex += b
+		
+	// 	bytesConsumed,completed,err := req.Headers.Parse(buf[:readToindex])
+	// 	if err != nil {
+	// 		return nil, err 
+	// 	}
+	// 	if bytesConsumed > 0 {
+	// 		copy(buf,buf[bytesConsumed:readToindex])
+	// 		readToindex -= bytesConsumed
+	// 	}
+
+	// 	if  completed{
+	// 		req.HTTPReadStatus = parsingBody
+	// 		// break
+	// 	}
+	//  }
+	//  for req.HTTPReadStatus == parsingBody {
+	// 	totalBodyBytes := 0
+	// 	bodyLength, err := req.Headers.Get("content-length")
+	// 	if err != nil {
+	// 		req.HTTPReadStatus = done
+	// 		break
+	// 	}
+	// 	bodyLengthInt,err := strconv.Atoi(bodyLength)
+	// 	if err != nil {
+	// 		req.HTTPReadStatus = done 
+	// 		return nil, err 
+	// 	}
+	// 	//readtoindex already contains the first two bytes of the body
+	// 	totalBodyBytes = readToindex
+	// 	req.Body = append(req.Body, buf[:readToindex]...)
+	// 	for {
+	// 		if readToindex == len(buf){
+	// 			newBuf := make([]byte,len(buf) * 2)
+	// 			_ = copy(newBuf,buf)
+	// 			buf = newBuf
+	
+	// 		}
+	// 		// fmt.Printf("Read to index val: %d\n",readToindex)
+	// 		n, err := reader.Read(buf[readToindex:])			
+	// 		if err == io.EOF{
+				
+	// 			if totalBodyBytes > bodyLengthInt{
+	// 				req.HTTPReadStatus = done 
+	// 				return nil, fmt.Errorf("body contents greater than content length provided")
+	// 			}
+				
+	// 			if totalBodyBytes < bodyLengthInt {
+	// 				req.HTTPReadStatus = done 
+	// 				return nil, fmt.Errorf("body contents less than content length provided")
+	// 			}
+	// 			if totalBodyBytes == bodyLengthInt {
+	// 				req.HTTPReadStatus = done
+	// 				fmt.Printf("consumed %d of the body data\n",totalBodyBytes)
+	// 				break
+	// 			}
+				
+				
+	// 		} else if err != nil {				
+	// 			return nil,err 
+	// 		}
+			
+	// 		if n > 0 {
+												
+	// 			req.Body = append(req.Body, buf[readToindex:readToindex+n]...)
+	// 			readToindex += n
+	// 			totalBodyBytes += n 
+
+	// 		} else {
+	// 			req.HTTPReadStatus = done
+	// 			break
+	// 			// return nil,fmt.Errorf("error reading buffer infomration")
+	// 		}
+	// 	}		
+	//  }
 
 	
 
@@ -208,7 +237,8 @@ func parseRequestLine(data []byte) (RequestLine,int ,error){
 }
 
 func (r *Request) parse(data []byte) (int, error) {
-	if r.HTTPReadStatus == initialized{
+	switch r.HTTPReadStatus {
+	case initialized:
 		rline,bytesProcessed,err := parseRequestLine(data)
 		if err != nil {
 			return bytesProcessed,err 
@@ -221,11 +251,62 @@ func (r *Request) parse(data []byte) (int, error) {
 			r.HTTPReadStatus = requestStateParsingHeaders			
 			return bytesProcessed,nil
 		}
-	}
+		return bytesProcessed,nil 
+	case requestStateParsingHeaders:
+		bytesConsumed,completed,err := r.Headers.Parse(data)
+		if err != nil {
+			return 0, err 
+		}
 
-	if r.HTTPReadStatus == done {
-		return 0,fmt.Errorf("error: trying to read data in a done state")
+		if  completed{
+			r.HTTPReadStatus = parsingBody			
+		}
+		return bytesConsumed,nil 
+	case parsingBody:
+		totalBodyBytes := 0
+		bodyLength, err := r.Headers.Get("content-length")
+		if err != nil {
+			r.HTTPReadStatus = done
+			return len(data),nil
+		}
+		bodyLengthInt,err := strconv.Atoi(bodyLength)
+		if err != nil {
+			r.HTTPReadStatus = done 
+			return 0, err 
+		}
+		r.Body = append(r.Body, data...)
+		totalBodyBytes += len(data)
+		if totalBodyBytes > bodyLengthInt{
+			return 0, fmt.Errorf("content-length too large")
+		}
+		if totalBodyBytes == bodyLengthInt{
+			r.HTTPReadStatus = done
+		}
+		return len(data),nil 
+	case done:
+		return 0, fmt.Errorf("reading from done request")
+	default:
+		return 0,fmt.Errorf("error: unknown state")
+		
 	}
+	// if r.HTTPReadStatus == initialized{
+	// 	rline,bytesProcessed,err := parseRequestLine(data)
+	// 	if err != nil {
+	// 		return bytesProcessed,err 
+	// 	}
+	// 	if bytesProcessed == 0 {
+	// 		return 0,nil //need more data
+	// 	}
+	// 	if bytesProcessed > 0 {
+	// 		r.RequestLine = rline 
+	// 		r.HTTPReadStatus = requestStateParsingHeaders			
+	// 		return bytesProcessed,nil
+	// 	}
+	// }
 
-	return 0,fmt.Errorf("error: unknown state")
+	// if r.HTTPReadStatus == done {
+	// 	return 0,fmt.Errorf("error: trying to read data in a done state")
+	// }
+
+	// return 0,fmt.Errorf("error: unknown state")
 }

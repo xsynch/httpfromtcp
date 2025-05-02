@@ -32,7 +32,8 @@ func main() {
 
 func handlerFunc (w io.Writer, req *request.Request) *server.HandlerError{
 	
-	// log.Println(req.RequestLine.RequestTarget)
+	log.Printf("Attempting to target: %s\n",req.RequestLine.RequestTarget)
+
 	switch req.RequestLine.RequestTarget {
 	case "/yourproblem":
 		return &server.HandlerError{

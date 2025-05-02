@@ -60,7 +60,7 @@ func getStatusLine(statusCode StatusCode) []byte {
 	case InternalServerError:
 		reasonPhrase = "Internal Server Error"
 	}
-	return []byte(fmt.Sprintf("HTTP/1.1 %d %s\r\n", statusCode, reasonPhrase))
+	return fmt.Appendf(nil, "HTTP/1.1 %d %s\r\n", statusCode, reasonPhrase)
 }
 
 func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
@@ -87,7 +87,7 @@ func WriteHeaders(w io.Writer, headers headers.Headers) error {
 	
 	for k, v := range headers {
 		log.Printf("Writing header: %s: %s",k,v)
-		_, err := w.Write([]byte(fmt.Sprintf("%s: %s\r\n", k, v)))
+		_, err := w.Write(fmt.Appendf(nil,"%s: %s\r\n", k, v))
 		if err != nil {
 			return fmt.Errorf("error writing another header: %s",err)
 		}
