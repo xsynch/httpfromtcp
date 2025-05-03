@@ -35,76 +35,7 @@ type HeaderLine struct {
 
 
 
-// func RequestFromReader(reader io.Reader) (*Request, error) {
-// 	readToindex := 0
-// 	buf := make([]byte,bufferSize)
 
-// 	req := &RequestHeaders{
-// 		HTTPReadStatus: initialized,
-// 	}
-	
-	
-// 	for req.HTTPReadStatus != done{
-		
-// 		if readToindex == len(buf){
-// 			newBuf := make([]byte,len(buf) * 2)
-// 			_ = copy(newBuf,buf)
-// 			buf = newBuf
-
-// 		}
-// 		b,err := reader.Read(buf[readToindex:])
-// 		if err != nil && err != io.EOF{
-// 			return nil, err				
-// 		}
-// 		readToindex += b
-		
-// 		bytesConsumed,status,err := req.HeaderLine.Parse((buf[:readToindex]))
-// 		if err != nil {
-// 			return nil, err 
-// 		}
-// 		if bytesConsumed > 0 {
-// 			copy(buf,buf[bytesConsumed:readToindex])
-// 			readToindex -= bytesConsumed
-// 		}
-
-// 		if err == io.EOF{
-// 			req.HTTPReadStatus = done
-// 			break
-// 		}
-				
-// 	}
-	
-
-// 	return req,nil 
-// }
-
-
-// func parseHeaderLine(data []byte) (Headers,int ,error){
-// 	if !bytes.Contains(data,[]byte("\r\n")) {
-// 		return nil, 0,nil 
-// 	}
-// 	bytesConsumed := bytes.Index(data, []byte("\r\n")) + 2
-	
-// 	lines := strings.Split(string(data),"\r\n")
-	
-// 	headerLine := strings.Split(lines[0],": ")
-// 	if len(headerLine) != 3 {
-// 		return nil, 0,fmt.Errorf("invalid request line: %s",headerLine)
-// 	}
-	
-// 	if !regexp.MustCompile(`^[A-Z]*$`).MatchString(headerLine[0]) {
-// 		return nil, 0,fmt.Errorf("invalid method: %s",headerLine[0])
-		
-// 	}
-// 	httpVer := strings.Split(headerLine[2],"/")
-// 	if len(httpVer) !=2 || httpVer[0] != "HTTP" || httpVer[1] != "1.1"{
-// 		return nil, 0,fmt.Errorf("invalid http version: %s",headerLine[2])
-// 	}
-	
-
-	
-// 	return Headers{},bytesConsumed,nil 
-// }
 
 func (h Headers) Parse(data []byte) (n int, done bool, err error) {
 

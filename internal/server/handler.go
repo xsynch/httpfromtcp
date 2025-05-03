@@ -17,11 +17,11 @@ type Handler func(w io.Writer, req *request.Request) *HandlerError
 
 
 func (he HandlerError) Write(w io.Writer) {
-	log.Println("writing status line")	
+	// log.Println("writing status line")	
 	response.WriteStatusLine(w, response.StatusCode(he.Status))
 	
 	messageBytes := []byte(he.Message)
-	log.Println("completed status line, writing headers")
+	// log.Println("completed status line, writing headers")
 	headers := response.GetDefaultHeaders(len(messageBytes))	
 	err := response.WriteHeaders(w, headers)
 	if err != nil {

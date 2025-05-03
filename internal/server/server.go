@@ -120,26 +120,14 @@ func (s *Server) handle(conn net.Conn) {
 			return
 		}
 		
-		n,err := conn.Write([]byte("Hello\r\n"))
-		if err != nil {
-			log.Println(err)
-		}
-		log.Printf("Wrote %d bytes\n",n)
+		// n,err := conn.Write([]byte("Hello\r\n"))
+
+		// log.Printf("Wrote %d bytes\n",n)
 	
-		handlerError := s.handler(conn,req)		
+		handlerError := s.handler(buf,req)		
 		if handlerError != nil  {
 			
-			msg := fmt.Sprintf("HTTP/1.1 %d %s\r\n",200,"OK")
-			_, err = conn.Write([]byte(msg))
-			if err != nil {
-				log.Printf("Error writing to connection from handlerError: %s\n",err)
-			}
-			// log.Println("handling the error")
 			handlerError.Write(conn)
-			// log.Println("returning from handler write")
-			
-
-			// conn.Close()
 			return
 
 		} 

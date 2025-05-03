@@ -47,6 +47,7 @@ func handlerFunc (w io.Writer, req *request.Request) *server.HandlerError{
 			Message: "Woopsie, my bad\n",
 		}
 	default:
+		
 		_,err := w.Write([]byte("All good, frfr\n"))
 		if err != nil {
 			return &server.HandlerError{
