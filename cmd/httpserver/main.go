@@ -1,14 +1,16 @@
 package main
 
 import (
+
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
-	"io"
 
+	"github.com/xsynch/httpfromtcp/internal/headers"
+	"github.com/xsynch/httpfromtcp/internal/response"
 	"github.com/xsynch/httpfromtcp/internal/server"
-	
+
 	"github.com/xsynch/httpfromtcp/internal/request"
 )
 
@@ -30,33 +32,109 @@ func main() {
 	log.Println("Server gracefully stopped")
 }
 
-func handlerFunc (w io.Writer, req *request.Request) *server.HandlerError{
+func handlerFunc (w *response.Writer, req *request.Request) {
 	
+	var msg string
+	var err error
+	var status response.StatusCode
+
 	log.Printf("Attempting to target: %s\n",req.RequestLine.RequestTarget)
+	h := headers.Headers{}
+	
 
 	switch req.RequestLine.RequestTarget {
 	case "/yourproblem":
-		return &server.HandlerError{
-			Status: 400,
-			Message: "Your problem is not my problem\n",
-			
-		}
-	case "/myproblem":
-		return &server.HandlerError{
-			Status: 500,
-			Message: "Woopsie, my bad\n",
-		}
-	default:
-		
-		_,err := w.Write([]byte("All good, frfr\n"))
+		status = response.BadRequest
+		msg ,err = (getBody(response.BadRequest))
 		if err != nil {
-			return &server.HandlerError{
-				Status: 500,
-				Message: "Error Writing the response\n",
-			}
+			log.Println("Error with getting the request body")
+			return 
 		}
+		
+
+
+
+	case "/myproblem":
+		status = response.InternalServerError
+		msg ,err = getBody(status)
+		if err != nil{
+			log.Println("Error with getting the request body")
+			return
+		}
+		// h := response.GetDefaultHeaders(len(msg))
+		
+		// w.WriteHeaders(h)		
+
+		// w.WriteBody([]byte(msg))
+
+	default:
+		status = response.OK
+		msg,err = getBody(status)
+		if err != nil {
+			log.Println("Error with getting the request body")
+			return
+		}
+		 
 	}
 
-	return nil 
+	err = w.WriteStatusLine(status)
+	if err != nil {
+		log.Printf("error writing the status line: %s\n",err)
+	}
 	
+	h = response.GetDefaultHeaders(len(msg))
+	h.OverRide("content-type","text/html")
+	
+	err = w.WriteHeaders(h)		
+	if err != nil {
+		log.Printf("error writing the headers line: %s\n",err)
+	}
+	
+
+	_, err = w.WriteBody([]byte(msg))	
+	if err != nil {
+		log.Printf("error writing the body: %s\n",err)
+	}
+
+	
+	
+}
+
+func getBody(r response.StatusCode) (string,error){
+	switch r {
+	case response.BadRequest:
+		resp := `<html>
+		<head>
+			<title>400 Bad Request</title>
+		</head>
+		<body>
+			<h1>Bad Request</h1>
+			<p>Your request honestly kinda sucked.</p>
+		</body>
+		</html>`
+		return resp,nil
+	case response.InternalServerError:
+		resp := `<html>
+				<head>
+					<title>500 Internal Server Error</title>
+				</head>
+				<body>
+					<h1>Internal Server Error</h1>
+					<p>Okay, you know what? This one is on me.</p>
+				</body>
+				</html>` 
+				return resp,nil
+	default:
+		resp :=  `<html>
+				<head>
+					<title>200 OK</title>
+				</head>
+				<body>
+					<h1>Success!</h1>
+					<p>Your request was an absolute banger.</p>
+				</body>
+				</html>`
+		return resp,nil 
+		
+	}
 }

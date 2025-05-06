@@ -16,6 +16,83 @@ const (
 	InternalServerError StatusCode = 500
 )
 
+type WriterState int 
+
+const (
+	WriterStateStatusLine WriterState = iota
+	WriterStateHeaders
+	WriterStateBody
+)
+
+type Writer struct{
+	IoWriter io.Writer
+
+	State WriterState
+	
+}
+
+func NewWriter(w io.Writer) *Writer {
+	return &Writer{
+		IoWriter: w,
+		State: WriterStateStatusLine,	
+	}
+}
+
+func (w *Writer) WriteStatusLine(statusCode StatusCode) error {
+	if w.State != WriterStateStatusLine {
+		return fmt.Errorf("incorrect state, should be writing the status line")
+	}
+	statusLine := w.GetStatusLine(statusCode)
+	log.Println(string(statusLine))
+	_,err := w.IoWriter.Write(statusLine)	
+	if err != nil {
+		return err 
+	}
+	w.State = WriterStateHeaders
+	return nil 
+}
+
+func (w *Writer) WriteHeaders(headers headers.Headers) error {
+	if w.State != WriterStateHeaders {
+		return fmt.Errorf("incorrecct state, should be writing the headers")
+	}
+	for k,v := range headers {				
+		log.Printf("key: %s val: %s\n",k,v)
+		_, err := w.IoWriter.Write([]byte(fmt.Sprintf("%s: %s\r\n",k,v)))
+		if err != nil {
+			return err 
+		}
+	}	
+	w.IoWriter.Write([]byte("\r\n"))
+	w.State = WriterStateBody
+	return nil 
+}
+
+func (w *Writer) WriteBody(p []byte) (int, error){
+	if w.State != WriterStateBody {
+		return 0,fmt.Errorf("incorrect state, should be writing the body")
+	}
+	n, err := w.IoWriter.Write([]byte(fmt.Sprintf("%s\n",p)))
+	if err != nil {
+		return 0,fmt.Errorf("error writing the body")
+	}
+	
+	return n,nil 
+}
+
+func (w *Writer) GetStatusLine(statusCode StatusCode) []byte {
+	reasonPhrase := ""
+	switch statusCode {
+	case OK:
+		reasonPhrase = "OK"
+	case BadRequest:
+		reasonPhrase = "Bad Request"
+	case InternalServerError:
+		reasonPhrase = "Internal Server Error"
+	}
+	return fmt.Appendf(nil, "HTTP/1.1 %d %s\r\n", statusCode, reasonPhrase)
+}
+
 // func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
 // 	var reasonPhrase string 
 // 	switch statusCode {

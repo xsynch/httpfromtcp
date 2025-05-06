@@ -3,7 +3,8 @@ package headers
 import (
 	"bytes"
 	"fmt"
-	
+	"log"
+
 	"regexp"
 	"strings"
 )
@@ -120,4 +121,16 @@ func (h Headers) Set(key, value string) {
 		}, ", ")
 	}
 	h[key] = value
+}
+
+func (h Headers) OverRide(key string, val string) error {
+	_,err  := h.Get(key)
+	if err != nil  {
+		log.Println(err)
+		h.Set(key,val)
+	}
+	log.Printf("Setting %s to %s\n",key,val)
+	h[key] = val 
+	return nil 
+
 }

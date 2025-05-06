@@ -3,6 +3,7 @@ package server
 import (
 	"io"
 	"log"
+	
 
 	"github.com/xsynch/httpfromtcp/internal/request"
 	"github.com/xsynch/httpfromtcp/internal/response"
@@ -13,7 +14,9 @@ type HandlerError struct {
 	Message string 
 }
 
-type Handler func(w io.Writer, req *request.Request) *HandlerError
+type Handler func(w *response.Writer, req *request.Request)
+
+// type Handler func(w io.Writer, req *request.Request) *HandlerError
 
 
 func (he HandlerError) Write(w io.Writer) {

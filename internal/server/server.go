@@ -1,7 +1,7 @@
 package server
 
 import (
-	"bytes"
+	
 	"fmt"
 	
 	"log"
@@ -39,30 +39,7 @@ func Serve(port int, h Handler) (*Server, error){
 	return &s,nil
 }
 
-// func HandleError(w io.Writer, he HandlerError) error {
 
-// 	msg := he.Message
-	
-// 	log.Printf("Writing the status line: %d\n",he.Status)
-// 	h := response.GetDefaultHeaders(len(msg))
-// 	err := response.WriteStatusLine(w,response.StatusCode(he.Status))
-// 	if err != nil {
-		
-// 		return fmt.Errorf("error writing the status line: %s",err)
-// 	}
-// 	log.Println("Finished writing status. Writing the headers")
-// 	err = response.WriteHeaders(w,h)
-// 	if err != nil {
-// 		return fmt.Errorf("error writing the headers line: %s",err)
-// 	}
-// 	log.Println("finished writing the headers. writing the body")
-// 	_, err = w.Write([]byte(msg))
-// 	if err != nil {
-// 		return fmt.Errorf("error writing the message line: %s",err) 
-// 	}
-// 	return nil 
-	
-// }
 
 func (s *Server) Close() error{
 	s.closed.Store(true)
@@ -102,12 +79,13 @@ func (s *Server) listen(){
 func (s *Server) handle(conn net.Conn) {
 		// msg := fmt.Sprintf("HTTP/1.1 %d %s\r\n",200,"OK")
 		// conn.Write([]byte(msg))
+		w := response.NewWriter(conn)
 		
 
 		defer conn.Close()
 		
 		
-		buf := bytes.NewBuffer([]byte{})
+		// buf := bytes.NewBuffer([]byte{})
 		
 		req, err := request.RequestFromReader(conn)
 		if err != nil {
@@ -124,31 +102,26 @@ func (s *Server) handle(conn net.Conn) {
 
 		// log.Printf("Wrote %d bytes\n",n)
 	
-		handlerError := s.handler(buf,req)		
-		if handlerError != nil  {
-			
-			handlerError.Write(conn)
-			return
-
-		} 
-		b := buf.Bytes()
-		defaultHeaders := response.GetDefaultHeaders(len(b))
-		err = response.WriteStatusLine(conn,response.OK)
-		if err != nil {
-			log.Println(err)
-			return
-		}
+		s.handler(w,req)		
 	
-		err = response.WriteHeaders(conn,defaultHeaders)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		_, err = conn.Write(b)
-		if err != nil {
-			log.Println(err)
-			return
-		}
+		// b := buf.Bytes()
+		// defaultHeaders := response.GetDefaultHeaders(len(b))
+		// err = response.WriteStatusLine(conn,response.OK)
+		// if err != nil {
+		// 	log.Println(err)
+		// 	return
+		// }
+	
+		// err = response.WriteHeaders(conn,defaultHeaders)
+		// if err != nil {
+		// 	log.Println(err)
+		// 	return
+		// }
+		// _, err = conn.Write(b)
+		// if err != nil {
+		// 	log.Println(err)
+		// 	return
+		// }
 			
 			
 		
