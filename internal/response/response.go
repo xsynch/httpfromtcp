@@ -22,6 +22,7 @@ const (
 	WriterStateStatusLine WriterState = iota
 	WriterStateHeaders
 	WriterStateBody
+	WriterStateTrailers
 )
 
 type Writer struct{
@@ -43,7 +44,7 @@ func (w *Writer) WriteStatusLine(statusCode StatusCode) error {
 		return fmt.Errorf("incorrect state, should be writing the status line")
 	}
 	statusLine := w.GetStatusLine(statusCode)
-	log.Println(string(statusLine))
+	log.Printf("Status Line: %s\n",string(statusLine))
 	_,err := w.IoWriter.Write(statusLine)	
 	if err != nil {
 		return err 
@@ -57,7 +58,7 @@ func (w *Writer) WriteHeaders(headers headers.Headers) error {
 		return fmt.Errorf("incorrecct state, should be writing the headers")
 	}
 	for k,v := range headers {				
-		log.Printf("key: %s val: %s\n",k,v)
+		// log.Printf("key: %s val: %s\n",k,v)
 		_, err := w.IoWriter.Write([]byte(fmt.Sprintf("%s: %s\r\n",k,v)))
 		if err != nil {
 			return err 
@@ -93,23 +94,7 @@ func (w *Writer) GetStatusLine(statusCode StatusCode) []byte {
 	return fmt.Appendf(nil, "HTTP/1.1 %d %s\r\n", statusCode, reasonPhrase)
 }
 
-// func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
-// 	var reasonPhrase string 
-// 	switch statusCode {
-// 	case OK:
-// 		reasonPhrase = "OK"
-// 	case BadRequest:
-// 		reasonPhrase = "Bad Request"
-// 	case InternalServerError:
-// 		reasonPhrase = "Internal Server Error"
-// 	default:
-// 		reasonPhrase = ""
-// 	}	
-// 	_, err := w.Write([]byte(fmt.Sprintf("HTTP/1.1 %d %s\r\n",statusCode,reasonPhrase)))
 
-
-// 	return err 
-// }
 
 func GetDefaultHeaders(contentLen int) headers.Headers {
 	h := headers.NewHeaders()
@@ -117,12 +102,7 @@ func GetDefaultHeaders(contentLen int) headers.Headers {
 	h.Set("Connection","close")
 	h.Set("Content-Type","text/plain")
 	
-	// h := headers.Headers{
-	// 	"Content-Length": fmt.Sprintf("%d",contentLen),
-	// 	"Connection": "close",
-	// 	"Content-Type": "text/plain",
 
-	// }
 	return h 
 }
 
@@ -146,19 +126,7 @@ func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
 }
 
 
-// func WriteHeaders(w io.Writer, headers headers.Headers) error {
-// 	for key,val := range headers{
-// 		log.Printf("Writing header: %s : %s",key,val)
-		
-// 		_,err := w.Write([]byte(fmt.Sprintf("%s: %s\r\n",key,val)))
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-// 	_, err := w.Write([]byte("\r\n"))
 
-// 	return err 
-// }
 
 func WriteHeaders(w io.Writer, headers headers.Headers) error {
 	
@@ -171,4 +139,41 @@ func WriteHeaders(w io.Writer, headers headers.Headers) error {
 	}
 	_, err := w.Write([]byte("\r\n"))
 	return err
+}
+
+
+func (w *Writer) WriteChunkedBody(p []byte) (int, error) {
+	hexSize := fmt.Sprintf("%x",len(p))
+	_,err := w.IoWriter.Write(fmt.Appendf(nil,"%s\r\n%s\r\n",hexSize,p))
+	if err != nil {
+		log.Printf("Error writing chunked body: %s\n",err)
+		return 0,err 
+	}
+	
+	return len(p),nil 
+}
+
+func (w *Writer) WriteChunkedBodyDone() (int, error) {
+	n,err := w.IoWriter.Write(fmt.Appendf(nil,"0\r\n"))
+	if err != nil {
+		log.Printf("Error writing body done: %s\n",err)
+		return 0,err 
+	}
+	w.State = WriterStateTrailers
+	return n,nil 
+}
+
+func (w *Writer) WriteTrailers(h headers.Headers) error {
+	if w.State == WriterStateTrailers {
+		// w.IoWriter.Write([]byte("0\r\n"))
+		for key,val := range h {
+			_,err := w.IoWriter.Write([]byte(fmt.Sprintf("%s: %s\r\n",key,val)))
+			if err != nil {
+				return err 
+			}
+		}
+		w.IoWriter.Write([]byte("\r\n\r\n"))
+		return nil
+	}
+	return fmt.Errorf("incorrect state, should be writing trailers") 
 }

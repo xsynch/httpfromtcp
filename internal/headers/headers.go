@@ -126,11 +126,22 @@ func (h Headers) Set(key, value string) {
 func (h Headers) OverRide(key string, val string) error {
 	_,err  := h.Get(key)
 	if err != nil  {
-		log.Println(err)
+		// log.Printf("%s not found setting it to %s\n",key,err)
 		h.Set(key,val)
+		return nil 
 	}
 	log.Printf("Setting %s to %s\n",key,val)
 	h[key] = val 
 	return nil 
 
+}
+
+func (h Headers) Remove(key string) error {
+	// _, err := h.Get(key)
+	// if err != nil {
+	// 	log.Printf("Error getting %s to remove: %s\n",key,err)
+	// 	return err
+	// }
+	delete(h,key)
+	return nil 
 }
