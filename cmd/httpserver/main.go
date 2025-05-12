@@ -62,8 +62,34 @@ func handlerFunc (w *response.Writer, req *request.Request) {
 			log.Println("Error with getting the request body")
 			return 
 		}
+	case "/video":
+		status = response.OK
+		video, err := os.ReadFile("assets/vim.mp4")
+		if err != nil {
+			log.Printf("Error reading the video file: %s\n",err)
+			return 
+		}
 		
+		err = w.WriteStatusLine(status)
+		if err != nil {
+			log.Printf("Error writing the status line: %s\n",err)
+			return 
+		}
 
+		h = response.GetDefaultHeaders(len(video))
+		h.OverRide("content-type","video/mp4")
+		err = w.WriteHeaders(h)		
+		if err != nil {
+			log.Printf("error writing the headers line: %s\n",err)
+			return 
+		}
+
+		_,err = w.IoWriter.Write(video)
+		if err != nil {
+			log.Printf("Error playing the video: %s\n",err)
+			return 
+		}
+		return 
 
 
 	case "/myproblem":
